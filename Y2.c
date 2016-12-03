@@ -38,9 +38,11 @@ void initialisationServeur()
 
     printf("SOCKET UNIX NAME: %s\n",SERVER_PATH);
 
-    char buffer[BUFFER_LENGTH];
-    struct sockaddr_un serveraddr;
+    /* Au cas ou la derniere fois elle l' application ne c'est pas bien fermer.*/
+    unlink(SERVER_PATH);
 
+    char buffer[BUFFER_LENGTH];
+    struct sockaddr_un serveraddr,serverClient;
 
     /*************************************************************************/
     /* The socket() function returns a socket descriptor, which represents   */
@@ -53,6 +55,7 @@ void initialisationServeur()
     {
         perror("socket() failed");
     }
+    bzero((char *) &serveraddr, sizeof(serveraddr));
     /********************************************************************/
     /* After the socket descriptor is created, a bind() function gets a */
     /* unique name for the socket.                                      */
@@ -77,11 +80,11 @@ void initialisationServeur()
     }
 
     printf("Ready for client connect().\n");
-
-    while(1 < 2)
+    int clilen = sizeof(serverClient);
+    while (1)
     {
-        printf("in the do loop\n");
-        s2 = accept(s,NULL,NULL);
+        printf("in the loop\n");
+        s2 = accept(s, (struct sockaddr *) &serverClient, &clilen);
         if(s2 < 0)
         {
             printf("in the do loop accepted fail\n");
@@ -107,7 +110,7 @@ void initialisationServeur()
             perror("send() failed");
             break;
         }
-    }
+    } /* end of while */
 
     unlink(SERVER_PATH);
     if(s != -1)close(s);
