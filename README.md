@@ -1,237 +1,286 @@
-TP2 - Queue de commandes
+<div id="contenu">
+	<h1>TP2 - Queue de commandes</h1>
 
-L'objectif du TP est de développer un utilitaire cq (command queue) qui permet à des commandes de se faire exécuter séquentiellement, même lorsque celles-ci sont lancées de façon concurrente.
+<p>L'objectif du TP est de développer un utilitaire <code>cq</code> (<em>command queue</em>) qui permet à des commandes de se faire exécuter séquentiellement, même lorsque celles-ci sont lancées de façon concurrente.</p>
 
-Le principe est qu'avant d'exécuter une commande, l'utilitaire se connecte à un serveur et attend son feu vert. De son coté, le serveur coordonne les différentes demandes des clients et s'assure de donner le feu vert (un seul à la fois) dans l'ordre d'arrivée des clients.
+<p>Le principe est qu'avant d'exécuter une commande, l'utilitaire se connecte à un serveur et attend son feu vert.
+De son coté, le serveur coordonne les différentes demandes des clients et s'assure de donner le feu vert (un seul à la fois) dans l'ordre d'arrivée des clients.</p>
 
-Description de l'outil
-La communication entre le serveur et les clients se fait grâce à une socket UNIX. Les sockets UNIX sont un mécanisme de communication locale inter-processus qui se base sur l'API POSIX des sockets réseau (qui incluent TCP/IP par exemple).
+<h2>Description de l'outil</h2>
 
-Pages du man à consulter: unix(7), socket(2), bind(2), listen(2), accept(2), connect(2)
+<p>La communication entre le serveur et les clients se fait grâce à une socket UNIX.
+Les sockets UNIX sont un mécanisme de communication locale inter-processus qui se base sur l'API POSIX des sockets réseau (qui incluent TCP/IP par exemple).</p>
 
-Le protocole de communication vous est imposé et est très simple car il se base sur l'envoi de simples caractères.
+<p>Pages du man à consulter: unix(7), socket(2), bind(2), listen(2), accept(2), connect(2)</p>
 
-Lorsqu'un client veut exécuter une commande, il se connecte à la socket "cq.socket" du répertoire courant. Il envoie ensuite le caractère "R" pour indiquer au serveur qu'il est prêt (ready ou red) et attend la réponse du serveur. Si la réponse est "G" (go ou green), le client exécute la commande puis à la fin de l'exécution se déconnecte du serveur (ce qui a pour effet de signaler au serveur que le client à fini). Si autre chose arrive ou si la connexion est coupée, le client affiche un message d'erreur et se termine sans exécuter la commande.
+<p>Le protocole de communication vous est imposé et est très simple car il se base sur l'envoi de simples caractères.</p>
 
-Le serveur ouvre une socket UNIX "cq.socket" du répertoire courant et attend des clients. Lorsqu'un client se connecte, il lit un caractère. Si "K" est reçu, le serveur envoie "D" à tous les clients de la file d'attente puis se termine. Si "R" est reçu, le client est mis dans la file d'attente. Si autre chose est reçu, la connexion avec le client est coupée.
+<p>Lorsqu'un client veut exécuter une commande, il se connecte à la socket "cq.socket" du répertoire courant.
+Il envoie ensuite le caractère "R" pour indiquer au serveur qu'il est prêt (<em>ready</em> ou <em>red</em>) et attend la réponse du serveur.
+Si la réponse est "G" (<em>go</em> ou <em>green</em>), le client exécute la commande puis à la fin de l'exécution se déconnecte du serveur (ce qui a pour effet de signaler au serveur que le client à fini).
+Si autre chose arrive ou si la connexion est coupée, le client affiche un message d'erreur et se termine sans exécuter la commande.</p>
 
-Il y a au maximum un client actif à la fois.
-Si aucun client n'est actif ou lorsque la connexion avec le client actif est terminée, le suivant dans la file d'attente devient actif à son tour, le serveur lui envoie alors "G".
+<p>Le serveur ouvre une socket UNIX "cq.socket" du répertoire courant et attend des clients.
+Lorsqu'un client se connecte, il lit un caractère.
+Si "K" est reçu, le serveur envoie "D" à tous les clients de la file d'attente puis se termine.
+Si "R" est reçu, le client est mis dans la file d'attente.
+Si autre chose est reçu, la connexion avec le client est coupée.</p>
 
-Lorsque le serveur se termine (via un signal ou via "K"), le fichier "cq.socket" est supprimé.
+<p>Il y a au maximum un client actif à la fois.<br>
+Si aucun client n'est actif ou lorsque la connexion avec le client actif est terminée, le suivant dans la file d'attente devient actif à son tour, le serveur lui envoie alors "G".</p>
 
-Objectifs pédagogiques
+<p>Lorsque le serveur se termine (via un signal ou via "K"), le fichier "cq.socket" est supprimé.</p>
 
-Ce travail pratique permet de réaliser un utilitaire système réaliste qui nécessite de s'initier aux points suivants:
+<h3>Objectifs pédagogiques</h3>
 
-supervision de processus
-communication inter-processus (socket UNIX)
-gestion des signaux
-implémentation d'un ordonnanceur simple (file d'attente)
-multiplexage d'entrées-sorties
-Fonctionnalités demandées
+<p>Ce travail pratique permet de réaliser un utilitaire système réaliste qui nécessite de s'initier aux points suivants:</p>
 
-Pour simplifier la réalisation de l'utilitaire cq voici l'ordre suggéré de développement. À chaque étape du développement correspond une option de l'utilitaire (en commençant par les options simples et primordiales). L'utilitaire final devra accepter l'ensemble des options.
+<ul>
+<li>supervision de processus</li>
+<li>communication inter-processus (socket UNIX)</li>
+<li>gestion des signaux</li>
+<li>implémentation d'un ordonnanceur simple (file d'attente)</li>
+<li>multiplexage d'entrées-sorties</li>
+</ul>
 
-Note: pour simplifier le développement, au maximum une seule option sera présente et sera toujours placée en premier argument.
 
-Exécution simple (x)
+<h3>Fonctionnalités demandées</h3>
 
-Usage: cq -x commande [arguments...]
+<p>Pour simplifier la réalisation de l'utilitaire <code>cq</code> voici l'ordre suggéré de développement.
+À chaque étape du développement correspond une option de l'utilitaire (en commençant par les options simples et primordiales).
+L'utilitaire final devra accepter l'ensemble des options.</p>
 
-Avec l'option -x, la commande est exécutée immédiatement sans se connecter à un serveur.
+<p>Note: pour simplifier le développement, au maximum une seule option sera présente et sera toujours placée en premier argument.</p>
 
-Le code de retour de l'utilitaire est celui de la commande.
+<h3>Exécution simple (x)</h3>
 
-L'objectif de cette option est de vérifier le bon fonctionnement de l'exécution d'une commande.
+<p>Usage: <code>cq -x commande [arguments...]</code></p>
 
-Code de retour
+<p>Avec l'option <code>-x</code>, la commande est exécutée immédiatement sans se connecter à un serveur.</p>
 
-En cas de succès, le code de retour de cq -x est celui de la commande exécutée.
+<p>Le code de retour de l'utilitaire est celui de la commande.</p>
 
-En cas d'échec d’exécution de la commande, le code de retour est 127 et un message d'erreur est affiché.
+<p>L'objectif de cette option est de vérifier le bon fonctionnement de l'exécution d'une commande.</p>
 
-Serveur factice (y)
+<p><strong>Code de retour</strong></p>
 
-Usage: cq -y
+<p>En cas de succès, le code de retour de <code>cq -x</code> est celui de la commande exécutée.</p>
 
-L'option -y (yes man, ou yellow) lance l'utilitaire en mode serveur factice, celui-ci crée la socket "cp.socket" dans le répertoire courant et attend les clients. Pour ce faire vous devez appeler dans l'ordre:
+<p>En cas d'échec d’exécution de la commande, le code de retour est 127 et un message d'erreur est affiché.</p>
 
-socket(AF_UNIX, SOCK_STREAM, 0)
-bind
-listen
-Une fois la socket crée, le serveur simple devra:
+<h3>Serveur factice (y)</h3>
 
-accepter toutes les connexions (accept)
-lire un caractère et vérifier que c'est "R" (recv)
-écrire "G" (send)
-fermer la socket (close)
-puis attendre le client suivant.
-En mode serveur factice, il n'y a pas donc pas d'ordonnancement et les clients sont exécutés immédiatement sans file d'attente. Le mode factice permet donc de tester avec un seul client à la fois.
+<p>Usage: <code>cq -y</code></p>
 
-Si un client envoie "K" au lieu de "R", le serveur supprime "cp.socket", répond "D", ferme la connexion, et termine avec un code de retour 0.
+<p>L'option <code>-y</code> (<em>yes man</em>, ou <em>yellow</em>) lance l'utilitaire en mode serveur factice, celui-ci crée la socket "<code>cp.socket</code>" dans le répertoire courant et attend les clients.
+Pour ce faire vous devez appeler dans l'ordre:</p>
 
-Si le client envoie autre chose que "K" ou "R", le serveur affiche un message d'erreur et ferme la connexion avec le client.
+<ul>
+<li><code>socket(AF_UNIX, SOCK_STREAM, 0)</code></li>
+<li><code>bind</code></li>
+<li><code>listen</code></li>
+</ul>
 
-Lorsque le serveur se termine avec un Ctrl-C (ou tout autre signal adapté), le fichier socket doit aussi être supprimé.
 
-Code de retour
+<p>Une fois la socket crée, le serveur simple devra:</p>
 
-cq -y retourne 0 lorsque celui-ci est terminé avec "K".
+<ul>
+<li>accepter toutes les connexions (<code>accept</code>)</li>
+<li>lire un caractère et vérifier que c'est "R" (<code>recv</code>)</li>
+<li>écrire "G" (<code>send</code>)</li>
+<li>fermer la socket (<code>close</code>)</li>
+<li>puis attendre le client suivant.</li>
+</ul>
 
-Dans ce cas, l'utilisateur a la garantie que le serveur s'est bien terminé, que ses clients ont été notifiés et que la socket existent plus.
 
-En cas de problème d'initialisation du serveur, cq -y affiche un message d'erreur et retourne 1.
+<p>En mode serveur factice, il n'y a pas donc pas d'ordonnancement et les clients sont exécutés immédiatement sans file d'attente.
+Le mode factice permet donc de tester avec un seul client à la fois.</p>
 
-Note pédagogique
+<p>Si un client envoie "K" au lieu de "R", le serveur supprime "cp.socket", répond "D", ferme la connexion, et termine avec un code de retour 0.</p>
 
-Normalement, un tel serveur ne devrait pas utiliser le répertoire courant pour stocker le fichier socket. En effet, rien ne garantie à l'utilisateur que le répertoire courant soit écrivable ni d’être sur une partition qui permet de tels fichiers. Un autre problème est qu'en cas de défaillance du serveur, des fichiers cq.socket pourraient s'accumuler à droite et à gauche.
+<p>Si le client envoie autre chose que "K" ou "R", le serveur affiche un message d'erreur et ferme la connexion avec le client.</p>
 
-La bonne pratique pour ce genre d'outil serait de créer ces sockets dans des endroits dédiés comme /tmp ou /var/run/user.
+<p>Lorsque le serveur se termine avec un Ctrl-C (ou tout autre signal adapté), le fichier socket doit aussi être supprimé.</p>
 
-Toutefois, dans le cadre du TP, utiliser le répertoire courant simplifie le travail de développement et d'évaluation.
+<p><strong>Code de retour</strong></p>
 
-Terminator
+<p><code>cq -y</code> retourne 0 lorsque celui-ci est terminé avec "K".</p>
 
-Usage: cq -k
+<p>Dans ce cas, l'utilisateur a la garantie que le serveur s'est bien terminé, que ses clients ont été notifiés et que la socket existent plus.</p>
 
-Avec l'option -k la commande se connecte au serveur, écrit "K", attend "D" puis se termine avec le code de retour 0.
+<p>En cas de problème d'initialisation du serveur, <code>cq -y</code> affiche un message d'erreur et retourne 1.</p>
 
-Si la connexion échoue ou si "D" n'est pas reçu, un message est affiché et le client se termine avec le code de retour 1.
+<p><strong>Note pédagogique</strong></p>
 
-Le role de l'option est de terminer le serveur, qu'il soit factice ou non. Notons que "K" doit être traité immédiatement par le serveur et non mit en file d'attente.
+<p>Normalement, un tel serveur ne devrait pas utiliser le répertoire courant pour stocker le fichier socket. En effet, rien ne garantie à l'utilisateur que le répertoire courant soit écrivable ni d’être sur une partition qui permet de tels fichiers.
+Un autre problème est qu'en cas de défaillance du serveur, des fichiers <code>cq.socket</code> pourraient s'accumuler à droite et à gauche.</p>
 
-Code de retour
+<p>La bonne pratique pour ce genre d'outil serait de créer ces sockets dans des endroits dédiés comme <code>/tmp</code> ou <code>/var/run/user</code>.</p>
 
-cq -k retourne 0 si le serveur s'est correctement terminé.
+<p>Toutefois, dans le cadre du TP, utiliser le répertoire courant simplifie le travail de développement et d'évaluation.</p>
 
-S'il est impossible de connecter au serveur ou si le serveur se comporte de façon incorrecte, 1 est retourné et un message d'erreur est affiché.
+<h3>Terminator</h3>
 
-Note pédagogique
+<p>Usage: <code>cq -k</code></p>
 
-Il est important de comprendre que cq -k est le moyen recommandé de terminer le serveur. Toutefois, la responsabilité de ce bon comportement est avant tout dans les main du serveur lui-meme.
+<p>Avec l'option <code>-k</code> la commande se connecte au serveur, écrit "K", attend "D" puis se termine avec le code de retour 0.</p>
 
-En particulier, lorsque cq -k se termine avec succès, l'utilisateur a la garantie que la socket du serveur est bien fermée, que le serveur est bien terminé, et que le fichier 'cq.socket' a bien été supprimé.
+<p>Si la connexion échoue ou si "D" n'est pas reçu, un message est affiché et le client se termine avec le code de retour 1.</p>
 
-$ cq -y &
+<p>Le role de l'option est de terminer le serveur, qu'il soit factice ou non.
+Notons que "K" doit être traité immédiatement par le serveur et non mit en file d'attente.</p>
+
+<p><strong>Code de retour</strong></p>
+
+<p><code>cq -k</code> retourne 0 si le serveur s'est correctement terminé.</p>
+
+<p>S'il est impossible de connecter au serveur ou si le serveur se comporte de façon incorrecte, 1 est retourné et un message d'erreur est affiché.</p>
+
+<p><strong>Note pédagogique</strong></p>
+
+<p>Il est important de comprendre que <code>cq -k</code> est le moyen recommandé de terminer le serveur. Toutefois, la responsabilité de ce bon comportement est avant tout dans les main du serveur lui-meme.</p>
+
+<p>En particulier, lorsque <code>cq -k</code> se termine avec succès, l'utilisateur a la garantie que la socket du serveur est bien fermée, que le serveur est bien terminé, et que le fichier 'cq.socket' a bien été supprimé.</p>
+
+<pre><code>$ cq -y &amp;
 $ cq -k
 $ ls cq.socket
 ls: cannot access cq.socket: No such file or directory
-Client simple
+</code></pre>
 
-Usage: cq -c commande [arguments...]
+<h3>Client simple</h3>
 
-Avec l'option -c, le client simple se connecte au serveur, lui envoie "R" et attend "G". Lorsque "G" est reçu, la commande est exécutée jusqu'à sa terminaison, puis la connexion est fermée et le client se termine avec le même code de retour que la commande.
+<p>Usage: <code>cq -c commande [arguments...]</code></p>
 
-Si la connexion échoue ou si "G" n'est pas reçu (tout particulièrement si c'est un "D" qui est reçu), un message d'erreur est affiché et le client se termine avec le code de retour 1; la commande n'est pas exécutée.
+<p>Avec l'option <code>-c</code>, le client simple se connecte au serveur, lui envoie "R" et attend "G".
+Lorsque "G" est reçu, la commande est exécutée jusqu'à sa terminaison, puis la connexion est fermée et le client se termine avec le même code de retour que la commande.</p>
 
-Ce client respecte le comportement voulu et fonctionne avec tous les types de serveurs.
+<p>Si la connexion échoue ou si "G" n'est pas reçu (tout particulièrement si c'est un "D" qui est reçu), un message d'erreur est affiché et le client se termine avec le code de retour 1; la commande n'est pas exécutée.</p>
 
-Code de retour
+<p>Ce client respecte le comportement voulu et fonctionne avec tous les types de serveurs.</p>
 
-En cas de succès, le code de retour de cq -c est celui de la commande exécutée.
+<p><strong>Code de retour</strong></p>
 
-En cas d’échec de connexion au serveur, le code de retour est 1 et un message d'erreur est affiché.
+<p>En cas de succès, le code de retour de <code>cq -c</code> est celui de la commande exécutée.</p>
 
-Si le serveur se comporte mal, coupe la connection ou envoie "D", le client affiche un message d'erreur et retourne 1.
+<p>En cas d’échec de connexion au serveur, le code de retour est 1 et un message d'erreur est affiché.</p>
 
-En cas d'échec d’exécution de la commande, le code de retour est 127 et un message d'erreur est affiché.
+<p>Si le serveur se comporte mal, coupe la connection ou envoie "D", le client affiche un message d'erreur et retourne 1.</p>
 
-Serveur simple (s)
+<p>En cas d'échec d’exécution de la commande, le code de retour est 127 et un message d'erreur est affiché.</p>
 
-Usage: cq -s
+<h3>Serveur simple (s)</h3>
 
-L'option -s lance l'utilitaire en mode serveur simple.
+<p>Usage: <code>cq -s</code></p>
 
-If fonctionne comme le serveur factice mais implémente le comportement attendu: au maximum un client est actif à la fois, les autres sont dans la file d'attente et seront servis à tour de rôle.
+<p>L'option <code>-s</code> lance l'utilitaire en mode serveur simple.</p>
 
-Pour implémenter le serveur simple vous devez utiliser l'appel système select afin de pouvoir surveiller à la fois la connexion avec le client actif et les demande de connexion des nouveaux clients.
+<p>If fonctionne comme le serveur factice mais implémente le comportement attendu: au maximum un client est actif à la fois, les autres sont dans la file d'attente et seront servis à tour de rôle.</p>
 
-Il est important d'utilise select car cela permet au serveur de traiter les "K" qui arrivent meme si plusieurs clients sont dans la file d'attente.
+<p>Pour implémenter le serveur simple vous devez utiliser l'appel système <code>select</code> afin de pouvoir surveiller à la fois la connexion avec le client actif et les demande de connexion des nouveaux clients.</p>
 
-Pour implémenter la file d'attente, inutile d'utiliser une structure de donnée compliquée. La plus simple (mais fonctionnelle) fera l'affaire. Pour simplifier le développement, on demandera que le serveur soit capable d'avoir au moins 15 clients en file d'attente. Au delà, le serveur pourra leur fermer la connection au nez.
+<p>Il est important d'utilise <code>select</code> car cela permet au serveur de traiter les "K" qui arrivent meme si plusieurs clients sont dans la file d'attente.</p>
 
-Note pédagogique
+<p>Pour implémenter la file d'attente, inutile d'utiliser une structure de donnée compliquée. La plus simple (mais fonctionnelle) fera l'affaire.
+Pour simplifier le développement, on demandera que le serveur soit capable d'avoir au moins 15 clients en file d'attente. Au delà, le serveur pourra leur fermer la connection au nez.</p>
 
-Un client qui exécute une commande qui ne se termine pas bloque nécessairement tous les clients suivants.
+<p><strong>Note pédagogique</strong></p>
 
-Toutefois, si l'utilisateur termine de force le client qui bloque tout le monde (via un signal KILL par exemple), la connection au serveur est alors fermée par le système d'exploitation.
+<p>Un client qui exécute une commande qui ne se termine pas bloque nécessairement tous les clients suivants.</p>
 
-En fait, pour le serveur, il n'est pas possible (ni nécessaire dans le cadre du TP) de savoir pourquoi un client s'est terminé, la seule chose qui l’intéresse est de savoir si un client est toujours au bout de la socket.
+<p>Toutefois, si l'utilisateur termine de force le client qui bloque tout le monde (via un signal KILL par exemple), la connection au serveur est alors fermée par le système d'exploitation.</p>
 
-La socket au client sert de ligne de vie, dès que celle-ci est fermée par le client (ou par le système à la terminaison du client), le serveur passe au client suivant.
+<p>En fait, pour le serveur, il n'est pas possible (ni nécessaire dans le cadre du TP) de savoir pourquoi un client s'est terminé, la seule chose qui l’intéresse est de savoir si un client est toujours au bout de la socket.</p>
 
-Serveur Démon (d)
+<p>La socket au client sert de ligne de vie, dès que celle-ci est fermée par le client (ou par le système à la terminaison du client), le serveur passe au client suivant.</p>
 
-Usage: cq -d
+<h3>Serveur Démon (d)</h3>
 
-L'option -d lance l'utilitaire en mode démon, c'est à dire que le serveur passe en arrière plan une fois la socket correctement établie.
+<p>Usage: <code>cq -d</code></p>
 
-Quand le serveur est lancé en arrière plan, le seul moyen de le terminer est d'utiliser un client avec l'option -k (ou de lui envoyer le signal approprié, bien évidemment).
+<p>L'option <code>-d</code> lance l'utilitaire en mode démon, c'est à dire que le serveur passe en arrière plan une fois la socket correctement établie.</p>
 
-Code de retour
+<p>Quand le serveur est lancé en arrière plan, le seul moyen de le terminer est d'utiliser un client avec l'option <code>-k</code> (ou de lui envoyer le signal approprié, bien évidemment).</p>
 
-0 est retourné quand sq.socket est correctement crée et que les client peuvent commencer à s'y connecter.
+<p><strong>Code de retour</strong></p>
 
-En cas de problème pour initialiser le serveur, 1 est retourné et un message d'erreur est affiché.
+<p>0 est retourné quand <code>sq.socket</code> est correctement crée et que les client peuvent commencer à s'y connecter.</p>
 
-Note pédagogique
+<p>En cas de problème pour initialiser le serveur, 1 est retourné et un message d'erreur est affiché.</p>
 
-Il est important de comprendre la différence entre
+<p><strong>Note pédagogique</strong></p>
 
-cq -s &
+<p>Il est important de comprendre la différence entre</p>
+
+<pre><code>cq -s &amp;
 cq -c echo hello
-et
+</code></pre>
 
-cq -d
+<p>et</p>
+
+<pre><code>cq -d
 cq -c echo hello
-Dans le premier cas, le fork qui permet de passer en arrière plan a lieu avant même l'exécution de l'utilitaire. Ce qui veut dire que l'utilisateur ne sais pas si le serveur a bien été lancé. Cela veut dire aussi qu'au moment du cq -c, le serveur n'a peut-être pas encore été lancé en fonction des caprices de l'ordonnanceur ce qui fait que cq -c pourrait échouer.
+</code></pre>
 
-Dans le second cas, lorsque la commande cq -d retourne avec success, l'utilisateur sait que le serveur est bien lancé. Cela veut dire aussi que lors du cq -c la socket du serveur est disponible et accepte les connexions.
+<p>Dans le premier cas, le fork qui permet de passer en arrière plan a lieu avant même l'exécution de l'utilitaire. Ce qui veut dire que l'utilisateur ne sais pas si le serveur a bien été lancé. Cela veut dire aussi qu'au moment du <code>cq -c</code>, le serveur n'a peut-être pas encore été lancé en fonction des caprices de l'ordonnanceur ce qui fait que <code>cq -c</code> pourrait échouer.</p>
 
-L'option -d offre donc une valeur ajoutée par rapport à exécuter au niveau du shell le serveur en arrière plan.
+<p>Dans le second cas, lorsque la commande <code>cq -d</code> retourne avec success, l'utilisateur sait que le serveur est bien lancé. Cela veut dire aussi que lors du <code>cq -c</code> la socket du serveur est disponible et accepte les connexions.</p>
 
-Client ultime
+<p>L'option <code>-d</code> offre donc une valeur ajoutée par rapport à exécuter au niveau du shell le serveur en arrière plan.</p>
 
-Usage: cq commande [arguments...]
+<h3>Client ultime</h3>
 
-Sans aucune option, l'utilitaire fonctionne comme le client simple mais:
+<p>Usage: <code>cq commande [arguments...]</code></p>
 
-lance le serveur automatiquement si nécessaire.
-retourne immédiatement à l'utilisateur une fois connecté au serveur, sans attendre le feu vert du serveur ni la terminaison de la commande. La commande sera alors exécutée en arrière plan.
-Vu que l'attente du feu vert et l'exécution de la commande se font en arrière plan, l'utilisateur ne peut pas savoir simplement l'état de la commande et si elle s'est bien terminé (résoudre ce problème serait relativement facile mais compliquerait le TP sans apporter réellement un gain pédagogique).
+<p>Sans aucune option, l'utilitaire fonctionne comme le client simple mais:</p>
 
-Il peut toutefois facilement stocker la sortie de la commande pour le consulter plus tard.
+<ul>
+<li>lance le serveur automatiquement si nécessaire.</li>
+<li>retourne immédiatement à l'utilisateur une fois connecté au serveur, sans attendre le feu vert du serveur ni la terminaison de la commande. La commande sera alors exécutée en arrière plan.</li>
+</ul>
 
-$ cq commande > fichier_sortie
-L'utilisateur peut également utiliser cq -c comme point de synchronisation. En effet cq -c attend nécessairement la terminaison de la commande. Ainsi on pourrait écrire
 
-$ cq cmd1
+<p>Vu que l'attente du feu vert et l'exécution de la commande se font en arrière plan, l'utilisateur ne peut pas savoir simplement l'état de la commande et si elle s'est bien terminé (résoudre ce problème serait relativement facile mais compliquerait le TP sans apporter réellement un gain pédagogique).</p>
+
+<p>Il peut toutefois facilement stocker la sortie de la commande pour le consulter plus tard.</p>
+
+<pre><code>$ cq commande &gt; fichier_sortie
+</code></pre>
+
+<p>L'utilisateur peut également utiliser <code>cq -c</code> comme point de synchronisation. En effet <code>cq -c</code> attend nécessairement la terminaison de la commande. Ainsi on pourrait écrire</p>
+
+<pre><code>$ cq cmd1
 $ cq cmd2
 $ cq -c echo "fini!" # attendre la fin des deux commandes précédentes
-Code de retour
+</code></pre>
 
-Lorsque la connexion au serveur est correctement établie, 0 est retourné.
+<p><strong>Code de retour</strong></p>
 
-S'il est impossible de se connecter au serveur et qu'il est également impossible de lancer le serveur en arrière plan pour s'y connecter, un message d'erreur est affiché et 1 est retourné.
+<p>Lorsque la connexion au serveur est correctement établie, 0 est retourné.</p>
 
-Note pédagogique
+<p>S'il est impossible de se connecter au serveur et qu'il est également impossible de lancer le serveur en arrière plan pour s'y connecter, un message d'erreur est affiché et 1 est retourné.</p>
 
-De la même manière que pour cq -s v. cq -d précédent, il est important de comprendre la différence entre
+<p><strong>Note pédagogique</strong></p>
 
-cq -c echo hello &
-cq -c echo world &
-et
+<p>De la même manière que pour <code>cq -s</code> v. <code>cq -d</code> précédent, il est important de comprendre la différence entre</p>
 
-cq echo hello
+<pre><code>cq -c echo hello &amp;
+cq -c echo world &amp;
+</code></pre>
+
+<p>et</p>
+
+<pre><code>cq echo hello
 cq echo world
-Dans le premier cas, le fork qui permet aux cq -c de s'exécuter en arrière plan a lieu très tôt. L'utilisateur ne sais donc pas si la connexion au serveur s'est bien passée. Pire, rien n'interdit (même si c'est hautement improbable) que le second cq -c soit ordonnancé avant le premier, et s’inscrive donc au niveau du serveur avant l'autre, ceci causant le "word" de s'afficher avant le "hello".
+</code></pre>
 
-Dans le second cas, cq ne passe en arrière plan qu'une fois la connexion établie avec le serveur. L'utilisateur sait donc si la connexion s'est bien passé et il a la garantie que le premier cq est inscrit dans la file d'attente du serveur avant le second.
+<p>Dans le premier cas, le fork qui permet aux <code>cq -c</code> de s'exécuter en arrière plan a lieu très tôt. L'utilisateur ne sais donc pas si la connexion au serveur s'est bien passée. Pire, rien n'interdit (même si c'est hautement improbable) que le second <code>cq -c</code> soit ordonnancé avant le premier, et s’inscrive donc au niveau du serveur avant l'autre, ceci causant le "<code>word</code>" de s'afficher avant le "<code>hello</code>".</p>
 
-Récapitulatif des options
+<p>Dans le second cas, <code>cq</code> ne passe en arrière plan qu'une fois la connexion établie avec le serveur. L'utilisateur sait donc si la connexion s'est bien passé et il a la garantie que le premier <code>cq</code> est inscrit dans la file d'attente du serveur avant le second.</p>
 
-Nom: cq - command queue
+<h3>Récapitulatif des options</h3>
+
+<pre><code>Nom: cq - command queue
 
 Usage: cq [-c|-x] commande [arguments...]
        cq (-y|-d|-k|-s)
@@ -247,7 +296,71 @@ Options:
   -x  exécute la commande directement sans se connecter au serveur (debug).
   -s  démarre le serveur manuellement en avant plan (debug).
   -y  démarre le serveur sans gestion de file d'attente (debug).
-Réalisation
-La réalisation de cet utilitaire se fera par groupes d'au plus deux personnes. Chaque membre de l'équipe devra maîtriser tous les aspects du programme.
+</code></pre>
 
-Le programme devra être réalisé en C en utilisant principalement les appels systèmes UNIX vus en classe. Le code source final (correctement commenté et nettoyé) devra tenir dans un seul fichier C.
+<h2>Réalisation</h2>
+
+<p>La réalisation de cet utilitaire se fera par groupes d'au plus <em>deux</em> personnes.
+Chaque membre de l'équipe devra maîtriser <em>tous</em> les aspects du programme.</p>
+
+<p>Le programme devra être réalisé en C en utilisant principalement les appels systèmes UNIX vus en classe.
+Le code source final (correctement commenté et nettoyé) devra tenir dans un seul fichier C.</p>
+
+<h1>Évaluation</h1>
+
+<p>Seront notamment pris en compte dans l'évaluation les critères suivants :</p>
+
+<ul>
+<li>le respect des instructions et l'atteinte des objectifs du TP ;</li>
+<li>la qualité des solutions techniques proposées (indépendamment de leur implémentation) ;</li>
+<li>la qualité du code fourni (clarté, commentaires, indentation, modularité, etc.) ;</li>
+<li>la bonne utilisation des appels systèmes et le traitement systématique des cas d'erreurs ;</li>
+<li>l'exactitude et la robustesse de l'utilitaire face à des cas limites d'utilisation.</li>
+</ul>
+
+
+<p>Une part importante de l'évaluation sera effectuée via les tests publics disponibles sur les machines</p>
+
+<p>Lancez la commande suivante dans votre répertoire de travail.</p>
+
+<pre><code>$ /home/privat_j/inf3172tp2/check.sh --all
+</code></pre>
+
+<p>Ceci lancera de nombreux tests.</p>
+
+<p>Chaque cas de test est indépendant et possède un nom comme <code>ck_0x4</code>.
+Pour chaque cas de test, les commandes sont en jaune (et commencent par un $), les résultats sont en blanc et les messages d'erreur sont en rouge (et commencent par un #).</p>
+
+<p>Pour exécuter seulement certains tests ou des familles de test, vous pouvez mettre des noms et des parties de noms de tests en argument.</p>
+
+<pre><code>$ /home/privat_j/inf3172tp2/check.sh ck_0x5 ck_0x4 # seulement ces tests
+$ /home/privat_j/inf3172tp2/check.sh ck_0x # tous les tests de la famille x
+</code></pre>
+
+<p>L'option <code>--list</code> liste l'ensemble des tests.</p>
+
+<p>Notez que les différents programmes utilisés lors des tests sont disponibles dans le répertoire <code>/home/privat_j/inf3172tp2</code></p>
+
+<p style="color: red">IMPORTANT: si votre programme ne compile pas ou si votre programme ne passe aucun des tests, vous aurez automatiquement 0 au TP</p>
+
+
+<h2>Document à rendre et dates</h2>
+
+<p>Vous devrez remettre:</p>
+
+<ul>
+<li>Listing papier du programme en c à rendre en cours (pas d'enveloppe, agrafes uniquement)</li>
+<li>Remise en ligne du source en c via Oto : <a href="http://oto.labunix.uqam.ca/application-web/connexion">Remise en ligne</a> (<a href="http://oto.labunix.uqam.ca/documents/manuel-oto-etudiant.pdf">Manuel d'utilisation</a>)<br>
+Nom du professeur à utiliser : privat_j<br>
+Nom de la boite oto : INF3172<br>
+Nom du fichier à soumettre : cq.c</li>
+</ul>
+
+
+<p>Vous pouvez faire autant de remises que vous voulez (seule la dernière est conservée).</p>
+
+<h2>Notes importantes</h2>
+
+<p>Avant de soumettre votre travail, vérifiez bien que (i) votre programme compile et s'exécute correctement ; (ii) qu'un simple <code>cat</code> de votre programme affiche quelque chose de lisible, de compréhensible et de correctement indenté.</p>
+
+	</div>
