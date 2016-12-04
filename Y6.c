@@ -12,71 +12,90 @@
 #define BUF_SIZ 1024
 #include <sys/wait.h>
 
-void serveurFactice()
-{
 
-    int listenfd, connfd;
-    char buf[BUF_SIZ];
-    /*gestionAlarmes();*/
-    struct sockaddr_un X;
-    /*listenfd = ouvrirSocketServeur();*/
-    if ((listenfd = socket(AF_UNIX, SOCK_STREAM, 0)) == -1)
+void fermerSocket(int socket){
+ close(socket);
+}
+
+int ouvrirSocketServeur()
+{
+    int s,len;
+    struct sockaddr_un local;
+
+    if ((s = socket(AF_UNIX, SOCK_STREAM, 0)) == -1)
     {
-        printf("Socket fail: %s\n", strerror(errno));
+        printf("socket unsuccessfully%s\n", strerror(errno));
     }
     else
     {
-        printf("Socket successful\n");
+        printf("socket successful\n");
     }
-    X.sun_family = AF_UNIX;
-    strcpy(X.sun_path, SOCK_PATH);
-    unlink(X.sun_path);
-    int len = strlen(X.sun_path) + sizeof(X.sun_family);
-    if (bind(listenfd, (struct sockaddr *)&X, len) == -1)
+
+    local.sun_family = AF_UNIX;
+    strcpy(local.sun_path, SOCK_PATH);
+    unlink(local.sun_path);
+    len = strlen(local.sun_path) + sizeof(local.sun_family);
+    if (bind(s, (struct sockaddr *)&local, len) == -1)
     {
-        printf("bind fail: %s\n", strerror(errno));
+        printf("bind unsuccessfully%s\n", strerror(errno));
     }
     else
     {
         printf("bind successful\n");
     }
 
-    if (listen(listenfd, 5) == -1)
+    if (listen(s, 5) == -1)
     {
-        printf("listen fail: %s\n", strerror(errno));
+        printf("listen unsuccessfully%s\n", strerror(errno));
     }
     else
     {
         printf("listen successful\n");
     }
+    return s;
+}
 
+int accepterConnexion(int socket)
+{
+    struct sockaddr_un newsockaddr;
+    int newsockaddr_size = sizeof(struct sockaddr_un);
+    int connfd = accept(socket, (struct sockaddr *) &newsockaddr, &newsockaddr_size);
+    if(connfd == -1)
+    {
+        printf("accept unsuccessfully%s\n", strerror(errno));
+    }
+    else
+    {
+        printf("accept successful\n");
+    }
+}
+
+int ecouteClient(int socket, char* str)
+{
+    int n = recv(socket, str, 100, 0);
+    if(n > 0)
+    {
+        str[n] = '\0';
+        printf("Server receive> %s", str);
+    }
+    else if(n < 0)
+    {
+         perror("recv");
+    }
+}
+
+void serveurFactice()
+{
+    int listenfd, connfd;
+    char buf[BUF_SIZ];
+    /*gestionAlarmes(); */
+    listenfd = ouvrirSocketServeur();
+    printf("after socket: %d",listenfd);
     while(1)
     {
-        /*connfd = accepterConnexion(listenfd);*/
-        int Xsize = sizeof(X);
-        if ((connfd = accept(listenfd, (struct sockaddr *)&X, &Xsize)) == -1)
-        {
-            printf("accept fail: %s\n", strerror(errno));
-        }
-        else
-        {
-            printf("accept successful\n");
-        }
-
+        connfd = accepterConnexion(listenfd);
         /*globfd = connfd;*/
-        /*ecouteClient(connfd, buf);*/
-        int t;
-        if ((t=recv(connfd, buf, 100, 0)) > 0)
-        {
-            buf[t] = '\0';
-            printf("echo> %s", buf);
-        }
-        else
-        {
-            if (t < 0) perror("recv");
-            else printf("Server closed connection\n");
-            exit(1);
-        }
+        ecouteClient(connfd, buf);
         switch (buf[0])
         {
         case 'R':
@@ -84,11 +103,11 @@ void serveurFactice()
             break;
         case 'K':
             send(connfd, "D", sizeof("D"), 0);
-            close(connfd);
+            fermerSocket(connfd);
             exit(0);
             break;
         default:
-            close(connfd);
+            fermerSocket(connfd);
             break;
         }
     }
