@@ -11,8 +11,9 @@
 #include <netinet/in.h>
 #include <netdb.h>
 
-#define BUFFER_LENGTH 1024
+#define BUFFER_LENGTH 256
 #define SOCKET_PATH "cq.socket"
+#define MAX_CLIENT 10
 
 /******************************************************/
 /**                                                  **/
@@ -31,7 +32,7 @@ void removeFirst(int argc, char *argv[])
 /*-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-*/
 int getSocket()
 {
-    unlink(SOCKET_PATH);/* On enleve l'ancien si le programme n"a pas bien ete fermer*/
+    /* On enleve l'ancien si le programme n"a pas bien ete fermer*/
     int socketID;
     /* --- CREATE SOCKET --- */
     struct sockaddr_un socket_address;
@@ -93,7 +94,7 @@ void basicExecution(int argc,char *argv[])
         }
         execArgs[compteur + 1] = NULL;
         int e = execvp(commande, execArgs);
-         printf("execvp ID: %d\n",e);
+        printf("execvp ID: %d\n",e);
 
     }
     do
@@ -111,7 +112,8 @@ void basicExecution(int argc,char *argv[])
 /*************************************************/
 /*                   OPTION -C                   */
 /*************************************************/
-void basicClientOption(int argc,char *argv[]){
+void basicClientOption(int argc,char *argv[])
+{
     printf("Cette fonctionnalite n'est pas encore implementer\n");
 }
 
@@ -120,56 +122,145 @@ void basicClientOption(int argc,char *argv[]){
 /*************************************************/
 void dummyServer()
 {
-    int serverID, connectionID;
+    int socketID,connectionSocket;
+    struct sockaddr_un local, remote;
     char buffer[BUFFER_LENGTH];
-    /*********************************************/
-    /*          CREATE NEW SOCKET                */
-    /*********************************************/
-    serverID = getSocket();
-    int done = 0;
-    while(!done)
+
+    if ((socketID = socket(AF_UNIX, SOCK_STREAM, 0)) == -1)
     {
-        connectionID = acceptConnectionFor(serverID);
-        int n = recv(connectionID, buffer, 100, 0);
-        if(n > 0)
+        printf("socket unsuccessful %s\n", strerror(errno));
+        exit(1);
+    }
+
+    local.sun_family = AF_UNIX;
+    strcpy(local.sun_path, SOCKET_PATH);
+    unlink(local.sun_path);
+    int length = strlen(local.sun_path) + sizeof(local.sun_family);
+    if (bind(socketID, (struct sockaddr *)&local, length) == -1)
+    {
+        printf("bind unsuccessful %s\n", strerror(errno));
+        exit(1);
+    }
+
+    if (listen(socketID, MAX_CLIENT) == -1)
+    {
+        printf("listen unsuccessful %s\n", strerror(errno));
+        exit(1);
+    }
+
+    for(;;)
+    {
+        int done, n;
+        int t = sizeof(remote);
+        if ((connectionSocket = accept(socketID, (struct sockaddr *)&remote, &t)) == -1)
         {
-            buffer[n] = '\0';
-            if(buffer[0] == 'R')
+            printf("accept unsuccessful %s\n", strerror(errno));
+            exit(1);
+        }
+
+        done = 0;
+        do
+        {
+            int n = recv(connectionSocket, buffer, BUFFER_LENGTH, 0);
+            if (n <= 0)
             {
-                send(connectionID, "G", sizeof("G"), 0);
-            }
-            else if(buffer[0] == 'K')
-            {
-                send(connectionID, "D", sizeof("D"), 0);
-                close(connectionID);
+                if (n < 0) printf("recv unsuccessful %s\n", strerror(errno));
                 done = 1;
             }
             else
             {
-                close(connectionID);
+                buffer[n] = '\0';
+                char first = buffer[0];
+                if(first == 'R')
+                {
+                    send(connectionSocket,"G",sizeof("G"),0);
+                }
+                else if(first =='K')
+                {
+                    send(connectionSocket,"D",sizeof("D"),0);
+                    close(connectionSocket);
+                    unlink(SOCKET_PATH);
+                    exit(0);
+                }else{
+                    printf("commande inconnu:  %s\n", buffer);
+                    close(connectionSocket);
+                    exit(0);
+                }
             }
         }
+        while (!done);
+
+        close(connectionSocket);
     }
 }
 
 /*************************************************/
 /*                   OPTION -D                   */
 /*************************************************/
-void demonServer(){
+void demonServer()
+{
     printf("Cette fonctionnalite n'est pas encore implementer\n");
 }
 
 /*************************************************/
 /*                   OPTION -K                   */
 /*************************************************/
-void terminator(){
-    printf("Cette fonctionnalite n'est pas encore implementer\n");
+void terminator()
+{
+    int clientSocket;
+    struct sockaddr_un remote;
+    char buffer[BUFFER_LENGTH];
+
+    /* --- CREATE THE SOCKET --- */
+    if ((clientSocket = socket(AF_UNIX, SOCK_STREAM, 0)) == -1)
+    {
+        printf("socket unsuccessful %s\n", strerror(errno));
+        exit(1);
+    }
+
+    /* --- CONNECT TO THE SERVER --- */
+    printf("Trying to connect...\n");
+
+    remote.sun_family = AF_UNIX;
+    strcpy(remote.sun_path, SOCKET_PATH);
+    int length = strlen(remote.sun_path) + sizeof(remote.sun_family);
+    if (connect(clientSocket, (struct sockaddr *)&remote, length) == -1)
+    {
+        printf("Connect unsuccessful %s\n", strerror(errno));
+        exit(1);
+    }
+    printf("Connected. \n");
+
+    while( fgets(buffer, 100, stdin), !feof(stdin))
+    {
+        if (send(clientSocket, buffer, strlen(buffer), 0) == -1)
+        {
+            perror("send");
+            exit(1);
+        }
+
+        int t;
+        if ((t=recv(clientSocket, buffer, 100, 0)) > 0)
+        {
+            buffer[t] = '\0';
+            printf("echo> %s", buffer);
+        }
+        else
+        {
+            if (t < 0) perror("recv");
+            else printf("Server closed connection\n");
+            exit(1);
+        }
+    }
+
+    close(clientSocket);
 }
 
 /*************************************************/
 /*                   OPTION -S                   */
 /*************************************************/
-void basicServer(){
+void basicServer()
+{
     printf("Cette fonctionnalite n'est pas encore implementer\n");
 }
 
@@ -177,7 +268,8 @@ void basicServer(){
 /*                   ULTIMATE                    */
 /*                    CLIENT                     */
 /*************************************************/
-void ultimateClient(int argc, char *argv[]){
+void ultimateClient(int argc, char *argv[])
+{
     printf("Cette fonctionnalite n'est pas encore implementer\n");
 }
 
@@ -191,9 +283,11 @@ int main(int argc, char *argv[])
     char* option = argv[0];
 
     /* Check if is ultimateClient*/
-    if(option[0] != '-'){
+    if(option[0] != '-')
+    {
         ultimateClient(argc,argv);
-    }else if(strcmp("-x", option) == 0)
+    }
+    else if(strcmp("-x", option) == 0)
     {
         removeFirst(argc, argv);
         argc --;
@@ -221,6 +315,6 @@ int main(int argc, char *argv[])
     {
         basicServer();
     }
-
+    unlink(SOCKET_PATH);
     return 0;
 }
