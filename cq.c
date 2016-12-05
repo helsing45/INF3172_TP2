@@ -181,7 +181,9 @@ void dummyServer()
                     close(connectionSocket);
                     unlink(SOCKET_PATH);
                     exit(0);
-                }else{
+                }
+                else
+                {
                     printf("commande inconnu:  %s\n", buffer);
                     close(connectionSocket);
                     exit(0);
@@ -219,7 +221,6 @@ void terminator()
     }
 
     /* --- CONNECT TO THE SERVER --- */
-    printf("Trying to connect...\n");
 
     remote.sun_family = AF_UNIX;
     strcpy(remote.sun_path, SOCKET_PATH);
@@ -229,29 +230,29 @@ void terminator()
         printf("Connect unsuccessful %s\n", strerror(errno));
         exit(1);
     }
-    printf("Connected. \n");
-
-    while( fgets(buffer, 100, stdin), !feof(stdin))
+    if (send(clientSocket,"K",sizeof("K"),0) == -1)
     {
-        if (send(clientSocket, buffer, strlen(buffer), 0) == -1)
-        {
-            perror("send");
-            exit(1);
-        }
+        perror("send");
+        exit(1);
+    }
 
-        int t;
-        if ((t=recv(clientSocket, buffer, 100, 0)) > 0)
+    int t;
+    if ((t=recv(clientSocket, buffer, 100, 0)) > 0)
+    {
+        buffer[t] = '\0';
+        char first = buffer[0];
+        if(first == 'D')
         {
-            buffer[t] = '\0';
-            printf("echo> %s", buffer);
-        }
-        else
-        {
-            if (t < 0) perror("recv");
-            else printf("Server closed connection\n");
-            exit(1);
+            exit(0);
         }
     }
+    else
+    {
+        if (t < 0) perror("recv");
+        else printf("Server closed connection\n");
+        exit(1);
+    }
+
 
     close(clientSocket);
 }
