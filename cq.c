@@ -30,62 +30,37 @@ void removeFirst(int argc, char *argv[])
 }
 
 /*-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-*/
-int getSocket()
-{
-    /* On enleve l'ancien si le programme n"a pas bien ete fermer*/
-    int socketID;
-    /* --- CREATE SOCKET --- */
-    struct sockaddr_un socket_address;
-    if ((socketID = socket(AF_UNIX, SOCK_STREAM, 0)) == -1)
+int createClient(){
+    int clientSocket;
+    struct sockaddr_un remote;
+
+    /* --- CREATE THE SOCKET --- */
+    if ((clientSocket = socket(AF_UNIX, SOCK_STREAM, 0)) == -1)
     {
         printf("socket unsuccessful %s\n", strerror(errno));
+        exit(1);
     }
-    socket_address.sun_family = AF_UNIX;
-    strcpy(socket_address.sun_path, SOCKET_PATH);
-    int length = strlen(socket_address.sun_path) + sizeof(socket_address.sun_family);
 
-    /* --- BIND SOCKET --- */
+    /* --- CONNECT TO THE SERVER --- */
 
-    if (bind(socketID, (struct sockaddr *)&socket_address, length) == -1)
+    remote.sun_family = AF_UNIX;
+    strcpy(remote.sun_path, SOCKET_PATH);
+    int length = strlen(remote.sun_path) + sizeof(remote.sun_family);
+    if (connect(clientSocket, (struct sockaddr *)&remote, length) == -1)
     {
-        printf("bind unsuccessful%s\n", strerror(errno));
+        printf("Connect unsuccessful %s\n", strerror(errno));
+        exit(1);
     }
-
-    /* --- LISTEN SOCKET --- */
-    if (listen(socketID, 5) == -1)
-    {
-        printf("listen unsuccessful%s\n", strerror(errno));
-    }
-    return socketID;
-
+    return clientSocket;
 }
-
 /*-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-*/
-int acceptConnectionFor(int socketID)
-{
-    struct sockaddr_un mockSocketAddress;
-    int mockSocketAddressSize = sizeof(mockSocketAddress);
-    return accept(socketID, (struct sockaddr *) &mockSocketAddress, &mockSocketAddressSize);
-
-}
-
-/*************************************************/
-/*                   OPTION -X                   */
-/*************************************************/
-void basicExecution(int argc,char *argv[])
-{
+int execute(int argc,char *argv[]){
     /*Enleve la commande*/
     char* commande = argv[0];
     removeFirst(argc, argv);
     argc --;
 
-    int waitProcessId;
-    int processId = fork();
-    int status;
-
-    if ( processId == 0 )
-    {
-        int compteur;
+    int compteur;
         char *execArgs[argc + 2];
         execArgs[0]=commande;
         for (compteur = 0 ; compteur < argc ; compteur++)
@@ -95,7 +70,19 @@ void basicExecution(int argc,char *argv[])
         execArgs[compteur + 1] = NULL;
         int e = execvp(commande, execArgs);
         printf("execvp ID: %d\n",e);
+}
+/*************************************************/
+/*                   OPTION -X                   */
+/*************************************************/
+void basicExecution(int argc,char *argv[])
+{
+    int waitProcessId;
+    int processId = fork();
+    int status;
 
+    if ( processId == 0 )
+    {
+        execute(argc,argv);
     }
     do
     {
@@ -114,7 +101,29 @@ void basicExecution(int argc,char *argv[])
 /*************************************************/
 void basicClientOption(int argc,char *argv[])
 {
-    printf("Cette fonctionnalite n'est pas encore implementer\n");
+    int clientSocket = createClient();
+    char buffer[BUFFER_LENGTH];
+    if (send(clientSocket,"R",sizeof("R"),0) == -1)
+    {
+        printf("Send %s\n", strerror(errno));
+        exit(1);
+    }
+    int t;
+    if ((t=recv(clientSocket, buffer, BUFFER_LENGTH, 0)) > 0)
+    {
+        buffer[t] = '\0';
+        char first = buffer[0];
+        if(first == 'G')
+        {
+            execute(argc,argv);
+        }
+    }
+    else
+    {
+        if (t < 0) perror("recv");
+        else printf("Server closed connection\n");
+        exit(1);
+    }
 }
 
 /*************************************************/
@@ -209,35 +218,16 @@ void demonServer()
 /*************************************************/
 void terminator()
 {
-    int clientSocket;
-    struct sockaddr_un remote;
+    int clientSocket = createClient();
     char buffer[BUFFER_LENGTH];
-
-    /* --- CREATE THE SOCKET --- */
-    if ((clientSocket = socket(AF_UNIX, SOCK_STREAM, 0)) == -1)
-    {
-        printf("socket unsuccessful %s\n", strerror(errno));
-        exit(1);
-    }
-
-    /* --- CONNECT TO THE SERVER --- */
-
-    remote.sun_family = AF_UNIX;
-    strcpy(remote.sun_path, SOCKET_PATH);
-    int length = strlen(remote.sun_path) + sizeof(remote.sun_family);
-    if (connect(clientSocket, (struct sockaddr *)&remote, length) == -1)
-    {
-        printf("Connect unsuccessful %s\n", strerror(errno));
-        exit(1);
-    }
     if (send(clientSocket,"K",sizeof("K"),0) == -1)
     {
-        perror("send");
+        printf("Send %s\n", strerror(errno));
         exit(1);
     }
 
     int t;
-    if ((t=recv(clientSocket, buffer, 100, 0)) > 0)
+    if ((t=recv(clientSocket, buffer, BUFFER_LENGTH, 0)) > 0)
     {
         buffer[t] = '\0';
         char first = buffer[0];
@@ -262,7 +252,7 @@ void terminator()
 /*************************************************/
 void basicServer()
 {
-    printf("Cette fonctionnalite n'est pas encore implementer\n");
+
 }
 
 /*************************************************/
