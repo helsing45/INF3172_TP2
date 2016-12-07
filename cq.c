@@ -30,7 +30,8 @@ void removeFirst(int argc, char *argv[])
 }
 
 /*-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-*/
-int createClient(){
+int createClient()
+{
     int clientSocket;
     struct sockaddr_un remote;
 
@@ -54,23 +55,42 @@ int createClient(){
     return clientSocket;
 }
 /*-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-*/
-int execute(int argc,char *argv[]){
+int execute(int argc,char *argv[])
+{
     /*Enleve la commande*/
     char* commande = argv[0];
     removeFirst(argc, argv);
     argc --;
 
     int compteur;
-        char *execArgs[argc + 2];
-        execArgs[0]=commande;
-        for (compteur = 0 ; compteur < argc ; compteur++)
-        {
-            execArgs[compteur + 1] = argv[compteur];
-        }
-        execArgs[compteur + 1] = NULL;
-        int e = execvp(commande, execArgs);
-        printf("execvp ID: %d\n",e);
+    char *execArgs[argc + 2];
+    execArgs[0]=commande;
+    for (compteur = 0 ; compteur < argc ; compteur++)
+    {
+        execArgs[compteur + 1] = argv[compteur];
+    }
+    execArgs[compteur + 1] = NULL;
+    int e = execvp(commande, execArgs);
+    printf("execvp ID: %d\n",e);
 }
+/*-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-*/
+void signalHandler(int signal)
+{
+    unlink(SOCKET_PATH);
+    exit(0);
+}
+/*-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-*/
+void createSignalHandler()
+{
+    struct sigaction sigIntHandler;
+
+    sigIntHandler.sa_handler = signalHandler;
+    sigemptyset(&sigIntHandler.sa_mask);
+    sigIntHandler.sa_flags = 0;
+
+    sigaction(SIGINT, &sigIntHandler, NULL);
+}
+
 /*************************************************/
 /*                   OPTION -X                   */
 /*************************************************/
@@ -143,7 +163,7 @@ void dummyServer()
 
     local.sun_family = AF_UNIX;
     strcpy(local.sun_path, SOCKET_PATH);
-    unlink(local.sun_path);
+    /*unlink(local.sun_path);*/
     int length = strlen(local.sun_path) + sizeof(local.sun_family);
     if (bind(socketID, (struct sockaddr *)&local, length) == -1)
     {
@@ -157,6 +177,8 @@ void dummyServer()
         exit(1);
     }
 
+    createSignalHandler();
+
     for(;;)
     {
         int done, n;
@@ -164,6 +186,7 @@ void dummyServer()
         if ((connectionSocket = accept(socketID, (struct sockaddr *)&remote, &t)) == -1)
         {
             printf("accept unsuccessful %s\n", strerror(errno));
+            pause();
             exit(1);
         }
 
@@ -189,12 +212,14 @@ void dummyServer()
                     send(connectionSocket,"D",sizeof("D"),0);
                     close(connectionSocket);
                     unlink(SOCKET_PATH);
+                    pause();
                     exit(0);
                 }
                 else
                 {
                     printf("commande inconnu:  %s\n", buffer);
                     close(connectionSocket);
+                    pause();
                     exit(0);
                 }
             }
